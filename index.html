@@ -2,47 +2,43 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Aula Virtual 3D - P2P Mesh</title>
+  <title>Auditorio Virtual UTN - P2P</title>
   <style>
-    body { margin: 0; overflow: hidden; background: #111; font-family: monospace; }
+    body { margin: 0; overflow: hidden; background: #0a0a10; font-family: monospace; }
     #hud {
       position: absolute; top: 12px; left: 12px; z-index: 100;
-      background: rgba(15, 15, 20, 0.85); color: #00ffcc;
-      padding: 12px 16px; border-radius: 6px; border: 1px solid #00ffcc44;
+      background: rgba(10, 15, 25, 0.9); color: #00ffcc;
+      padding: 12px 18px; border-radius: 6px; border: 1px solid #00ffcc55;
     }
     input, button {
-      background: #222; color: #fff; border: 1px solid #555;
+      background: #181d26; color: #fff; border: 1px solid #00ffcc66;
       padding: 6px 10px; margin-top: 6px; border-radius: 4px;
     }
-    button { cursor: pointer; border-color: #00ffcc; font-weight: bold; }
-    button:hover { background: #00ffcc22; }
-    #stats { font-size: 11px; color: #aaa; margin-top: 6px; }
+    button { cursor: pointer; background: #00ffcc22; font-weight: bold; }
+    button:hover { background: #00ffcc44; }
+    #stats { font-size: 11px; color: #8899aa; margin-top: 6px; }
   </style>
 
-  <!-- Three.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <!-- PeerJS -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-  <!-- Firebase App & Realtime Database (SDK Compat v9) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
   <div id="hud">
-    <div style="font-weight: bold; font-size: 14px;">Entorno Virtual P2P</div>
+    <div style="font-weight: bold; font-size: 14px;">Auditorio Virtual UTN</div>
     <div id="connectionPanel">
-      <input type="text" id="username" placeholder="Nombre de usuario" value="Alumno_1"><br>
-      <input type="text" id="roomId" placeholder="ID Sala" value="aula-ia"><br>
-      <button id="btnJoin">Ingresar a Sala</button>
+      <input type="text" id="username" placeholder="Nombre" value="Docente"><br>
+      <input type="text" id="roomId" placeholder="ID Sala" value="auditorio-1"><br>
+      <button id="btnJoin">Ingresar al Auditorio</button>
     </div>
-    <div id="stats">W, A, S, D para caminar | Q, E para rotar</div>
+    <div id="stats">W, A, S, D para caminar | Q, E para rotar vista</div>
   </div>
 
   <script>
     // ==========================================
-    // 1. CONFIGURACIÓN FIREBASE (Completar credenciales)
+    // 1. CONFIGURACIÓN FIREBASE (Tus credenciales)
     // ==========================================
-	
 	const firebaseConfig = {
 	  apiKey: "AIzaSyBgYPJWcmfimhT0FSLp92A4ocFDNOrhTY0",
 	  authDomain: "reavi-94216.firebaseapp.com",
@@ -54,114 +50,237 @@
 	  measurementId: "G-Q48KH7JHL8"
 	};
 
-	firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();	
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
     // ==========================================
-    // 2. ENTORNO THREE.JS
+    // 2. ESCENA Y MOTOR THREE.JS
     // ==========================================
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x181820);
-    scene.fog = new THREE.FogExp2(0x181820, 0.025);
+    scene.background = new THREE.Color(0x0e1118);
+    scene.fog = new THREE.FogExp2(0x0e1118, 0.015);
 
-    const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.body.appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    // Iluminación de Auditorio
+    const ambientLight = new THREE.AmbientLight(0xddeeff, 0.4);
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    dirLight.position.set(20, 40, 20);
-    dirLight.castShadow = true;
-    scene.add(dirLight);
+    // Foco principal en el estrado / pizarra
+    const stageSpot = new THREE.SpotLight(0xffffff, 1.2, 50, Math.PI / 4, 0.3);
+    stageSpot.position.set(0, 14, -12);
+    stageSpot.target.position.set(0, 2, -22);
+    stageSpot.castShadow = true;
+    scene.add(stageSpot);
+    scene.add(stageSpot.target);
 
-    // Suelo cuadriculado
-    const grid = new THREE.GridHelper(80, 80, 0x00ffcc, 0x333344);
-    grid.position.y = 0.01;
-    scene.add(grid);
+    // Luces generales de techo
+    const downLight = new THREE.PointLight(0xfff5ea, 0.6, 60);
+    downLight.position.set(0, 12, 5);
+    scene.add(downLight);
 
-    const floorGeo = new THREE.PlaneGeometry(80, 80);
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x121218, roughness: 0.8 });
-    const floor = new THREE.Mesh(floorGeo, floorMat);
+    // ==========================================
+    // 3. CONSTRUCCIÓN PROCEDURAL DEL AUDITORIO
+    // ==========================================
+    const matFloor = new THREE.MeshStandardMaterial({ color: 0x1a1d24, roughness: 0.7 });
+    const matWall = new THREE.MeshStandardMaterial({ color: 0x242a36, roughness: 0.9 });
+    const matWood = new THREE.MeshStandardMaterial({ color: 0x5c3a21, roughness: 0.5 });
+    const matScreen = new THREE.MeshBasicMaterial({ color: 0x051525 });
+    const matDesk = new THREE.MeshStandardMaterial({ color: 0x2e3440, roughness: 0.6 });
+
+    // Suelo base (40m ancho x 60m largo)
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 60), matFloor);
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     scene.add(floor);
 
-    // Fábrica de mallas de Avatar
-    function createAvatarMesh(colorHex) {
-      const group = new THREE.Group();
-      
-      // Cuerpo (Cápsula simplificada con cilindro + esfera superior)
-      const bodyGeo = new THREE.CylinderGeometry(0.4, 0.4, 1.4, 16);
-      const bodyMat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.4 });
-      const body = new THREE.Mesh(bodyGeo, bodyMat);
-      body.position.y = 0.9;
-      body.castShadow = true;
-      group.add(body);
+    // Pared frontal (fondo del estrado)
+    const frontWall = new THREE.Mesh(new THREE.BoxGeometry(40, 14, 1), matWall);
+    frontWall.position.set(0, 7, -30);
+    frontWall.receiveShadow = true;
+    scene.add(frontWall);
 
-      // Visor direccional (indica orientación hacia adelante: eje -Z)
-      const visorGeo = new THREE.BoxGeometry(0.35, 0.2, 0.3);
-      const visorMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1 });
-      const visor = new THREE.Mesh(visorGeo, visorMat);
-      visor.position.set(0, 1.3, -0.3);
-      group.add(visor);
+    // Pantalla de proyección central
+    const screen = new THREE.Mesh(new THREE.PlaneGeometry(18, 9), matScreen);
+    screen.position.set(0, 7.5, -29.4);
+    scene.add(screen);
 
-      return group;
+    // Marco de pantalla
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(18.4, 9.4, 0.2), matDesk);
+    frame.position.set(0, 7.5, -29.5);
+    scene.add(frame);
+
+    // Estrado / Tarima del Docente
+    const stage = new THREE.Mesh(new THREE.BoxGeometry(24, 0.8, 10), matWood);
+    stage.position.set(0, 0.4, -22);
+    stage.receiveShadow = true;
+    stage.castShadow = true;
+    scene.add(stage);
+
+    // Púlpito / Mesa de disertación
+    const podium = new THREE.Mesh(new THREE.BoxGeometry(3, 1.2, 1.2), matDesk);
+    podium.position.set(0, 1.4, -20);
+    podium.castShadow = true;
+    scene.add(podium);
+
+    // Gradas y filas de pupitres para alumnos
+    for (let r = 0; r < 6; r++) {
+      const zPos = -10 + (r * 5);
+      const yStep = r * 0.4;
+
+      // Escalón del suelo
+      const riser = new THREE.Mesh(new THREE.BoxGeometry(32, 0.4 + yStep, 4.5), matFloor);
+      riser.position.set(0, (0.4 + yStep) / 2, zPos);
+      riser.receiveShadow = true;
+      scene.add(riser);
+
+      // Pupitre largo izquierdo y derecho (con pasillo al medio)
+      [-8, 8].forEach(xOffset => {
+        const desk = new THREE.Mesh(new THREE.BoxGeometry(10, 0.8, 1), matWood);
+        desk.position.set(xOffset, 0.8 + yStep, zPos);
+        desk.castShadow = true;
+        scene.add(desk);
+
+        // Patas del pupitre
+        [-4.5, 4.5].forEach(legX => {
+          const leg = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.8 + yStep, 0.8), matDesk);
+          leg.position.set(xOffset + legX, (0.8 + yStep) / 2, zPos);
+          scene.add(leg);
+        });
+      });
     }
 
-    const localColor = 0x00ccff;
-    const localAvatar = createAvatarMesh(localColor);
-    scene.add(localAvatar);
+    // ==========================================
+    // 4. MODELADO DE AVATARES HUMANOIDES
+    // ==========================================
+    function createHumanoidAvatar(accentHex) {
+      const root = new THREE.Group();
 
-    // Estructuras para sincronización remota
-    const remotePeers = {}; // { peerId: { mesh, targetPos, targetRot, conn } }
+      const suitMat = new THREE.MeshStandardMaterial({ color: 0x222630, roughness: 0.6 });
+      const accentMat = new THREE.MeshStandardMaterial({ color: accentHex, roughness: 0.4 });
+      const skinMat = new THREE.MeshStandardMaterial({ color: 0xd9a584, roughness: 0.8 });
+      const visorMat = new THREE.MeshStandardMaterial({ color: 0x00ffcc, roughness: 0.1 });
+
+      // Torso
+      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.75, 0.35), accentMat);
+      torso.position.y = 1.2;
+      torso.castShadow = true;
+      root.add(torso);
+
+      // Cabeza
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.38, 0.35), skinMat);
+      head.position.y = 1.8;
+      head.castShadow = true;
+      root.add(head);
+
+      // Visor frontal (HUD de orientación en el rostro)
+      const visor = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, 0.05), visorMat);
+      visor.position.set(0, 1.82, -0.19);
+      root.add(visor);
+
+      // Extremidades articulables para animación de marcha
+      const limbGeo = new THREE.BoxGeometry(0.18, 0.7, 0.18);
+
+      const leftArm = new THREE.Mesh(limbGeo, suitMat);
+      leftArm.position.set(-0.42, 1.15, 0);
+      root.add(leftArm);
+
+      const rightArm = new THREE.Mesh(limbGeo, suitMat);
+      rightArm.position.set(0.42, 1.15, 0);
+      root.add(rightArm);
+
+      const leftLeg = new THREE.Mesh(limbGeo, suitMat);
+      leftLeg.position.set(-0.18, 0.45, 0);
+      leftLeg.castShadow = true;
+      root.add(leftLeg);
+
+      const rightLeg = new THREE.Mesh(limbGeo, suitMat);
+      rightLeg.position.set(0.18, 0.45, 0);
+      rightLeg.castShadow = true;
+      root.add(rightLeg);
+
+      // Referencias directas para animar rotaciones
+      return {
+        root,
+        leftArm,
+        rightArm,
+        leftLeg,
+        rightLeg
+      };
+    }
+
+    const localAvatar = createHumanoidAvatar(0x0099ff);
+    localAvatar.root.position.set(0, 0, 5); // Inicia en el auditorio mirando al frente
+    scene.add(localAvatar.root);
+
+    const remotePeers = {}; // { peerId: { avatar, targetPos, targetRotY, conn, isMoving } }
 
     // ==========================================
-    // 3. CONTROL DE MOVIMIENTO LOCAL
+    // 5. ENTRADA Y FÍSICA BÁSICA LOCAL
     // ==========================================
     const keys = {};
-    window.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; });
-    window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
+    window.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
+    window.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
 
     let localAngle = 0;
-    const moveSpeed = 0.12;
+    let walkCycle = 0;
+    const moveSpeed = 0.15;
     const rotSpeed = 0.04;
 
-    function handleLocalMovement() {
+    function handleLocalInput() {
       let moved = false;
 
-      // Rotación sobre eje Y
-      if (keys['q']) { localAngle += rotSpeed; moved = true; }
-      if (keys['e']) { localAngle -= rotSpeed; moved = true; }
-      localAvatar.rotation.y = localAngle;
+      if (keys['q']) { localAngle += rotSpeed; }
+      if (keys['e']) { localAngle -= rotSpeed; }
+      localAvatar.root.rotation.y = localAngle;
 
-      // Vectores relativos a la orientación
-      const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), localAngle);
-      const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), localAngle);
+      const fwd = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), localAngle);
+      const rgt = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), localAngle);
 
-      if (keys['w']) { localAvatar.position.addScaledVector(forward, moveSpeed); moved = true; }
-      if (keys['s']) { localAvatar.position.addScaledVector(forward, -moveSpeed); moved = true; }
-      if (keys['a']) { localAvatar.position.addScaledVector(right, -moveSpeed); moved = true; }
-      if (keys['d']) { localAvatar.position.addScaledVector(right, moveSpeed); moved = true; }
+      if (keys['w']) { localAvatar.root.position.addScaledVector(fwd, moveSpeed); moved = true; }
+      if (keys['s']) { localAvatar.root.position.addScaledVector(fwd, -moveSpeed); moved = true; }
+      if (keys['a']) { localAvatar.root.position.addScaledVector(rgt, -moveSpeed); moved = true; }
+      if (keys['d']) { localAvatar.root.position.addScaledVector(rgt, moveSpeed); moved = true; }
 
-      // Cámara en tercera persona (persiguiendo al avatar)
-      const camOffset = new THREE.Vector3(0, 3.5, 6).applyAxisAngle(new THREE.Vector3(0, 1, 0), localAngle);
-      camera.position.copy(localAvatar.position).add(camOffset);
-      camera.lookAt(localAvatar.position.x, localAvatar.position.y + 1.0, localAvatar.position.z);
+      // Límites del aula
+      localAvatar.root.position.x = Math.max(-18, Math.min(18, localAvatar.root.position.x));
+      localAvatar.root.position.z = Math.max(-28, Math.min(25, localAvatar.root.position.z));
+
+      // Animación de marcha local
+      if (moved) {
+        walkCycle += 0.2;
+        localAvatar.leftLeg.rotation.x = Math.sin(walkCycle) * 0.6;
+        localAvatar.rightLeg.rotation.x = -Math.sin(walkCycle) * 0.6;
+        localAvatar.leftArm.rotation.x = -Math.sin(walkCycle) * 0.6;
+        localAvatar.rightArm.rotation.x = Math.sin(walkCycle) * 0.6;
+      } else {
+        localAvatar.leftLeg.rotation.x = 0;
+        localAvatar.rightLeg.rotation.x = 0;
+        localAvatar.leftArm.rotation.x = 0;
+        localAvatar.rightArm.rotation.x = 0;
+      }
+
+      // Cámara en tercera persona
+      const camOffset = new THREE.Vector3(0, 2.6, 5.0).applyAxisAngle(new THREE.Vector3(0, 1, 0), localAngle);
+      camera.position.copy(localAvatar.root.position).add(camOffset);
+      camera.lookAt(
+        localAvatar.root.position.x,
+        localAvatar.root.position.y + 1.4,
+        localAvatar.root.position.z
+      );
 
       return moved;
     }
 
     // ==========================================
-    // 4. NETWORKING: PEERJS + FIREBASE
+    // 6. RED: PEERJS + FIREBASE
     // ==========================================
     let peer = null;
-    let roomRef = null;
-    let myPresenceRef = null;
 
     document.getElementById('btnJoin').addEventListener('click', () => {
       const roomName = document.getElementById('roomId').value.trim();
@@ -169,71 +288,56 @@
       if (!roomName || !userName) return;
 
       document.getElementById('connectionPanel').style.display = 'none';
-      document.getElementById('stats').innerText = `Conectando como: ${userName}...`;
+      document.getElementById('stats').innerText = `Conectando...`;
 
       peer = new Peer();
 
-      peer.on('open', (myPeerId) => {
-        document.getElementById('stats').innerText = `Sala: ${roomName} | ID: ${myPeerId}`;
+      peer.on('open', (id) => {
+        document.getElementById('stats').innerText = `Auditorio: ${roomName} | Usuario: ${userName}`;
 
-        // 1. Escuchar conexiones entrantes
-        peer.on('connection', (conn) => {
-          setupDataChannel(conn);
-        });
+        peer.on('connection', (conn) => setupDataChannel(conn));
 
-        // 2. Registrar presencia en Firebase Realtime DB
-        roomRef = db.ref(`rooms/${roomName}/peers`);
-        myPresenceRef = db.ref(`rooms/${roomName}/peers/${myPeerId}`);
+        const roomRef = db.ref(`rooms/${roomName}/peers`);
+        const myPresence = db.ref(`rooms/${roomName}/peers/${id}`);
 
-        myPresenceRef.set({
-          user: userName,
-          joinedAt: firebase.database.ServerValue.TIMESTAMP
-        });
+        myPresence.set({ user: userName, joined: firebase.database.ServerValue.TIMESTAMP });
+        myPresence.onDisconnect().remove();
 
-        // Eliminación atómica del registro al desconectar
-        myPresenceRef.onDisconnect().remove();
-
-        // 3. Conectarse a pares ya presentes en la sala
-        roomRef.once('value', (snapshot) => {
-          const peers = snapshot.val() || {};
-          Object.keys(peers).forEach((remoteId) => {
-            if (remoteId !== myPeerId && !remotePeers[remoteId]) {
-              const conn = peer.connect(remoteId);
-              setupDataChannel(conn);
+        roomRef.once('value', (snap) => {
+          const list = snap.val() || {};
+          Object.keys(list).forEach((remoteId) => {
+            if (remoteId !== id && !remotePeers[remoteId]) {
+              setupDataChannel(peer.connect(remoteId));
             }
           });
         });
 
-        // 4. Escuchar cuando un par abandona
-        roomRef.on('child_removed', (snapshot) => {
-          const removedId = snapshot.key;
-          removeRemotePeer(removedId);
-        });
+        roomRef.on('child_removed', (snap) => removeRemotePeer(snap.key));
       });
     });
 
     function setupDataChannel(conn) {
       conn.on('open', () => {
-        // Inicializar objeto remoto
         if (!remotePeers[conn.peer]) {
-          const mesh = createAvatarMesh(0xff5533);
-          scene.add(mesh);
+          const avatar = createHumanoidAvatar(0xff5533);
+          scene.add(avatar.root);
 
           remotePeers[conn.peer] = {
             conn: conn,
-            mesh: mesh,
-            targetPos: new THREE.Vector3(0, 0, 0),
-            targetRotY: 0
+            avatar: avatar,
+            targetPos: new THREE.Vector3(0, 0, 5),
+            targetRotY: 0,
+            walkCycle: 0
           };
-        } else {
-          remotePeers[conn.peer].conn = conn;
         }
       });
 
       conn.on('data', (data) => {
-        if (data.type === 'transform' && remotePeers[conn.peer]) {
-          remotePeers[conn.peer].targetPos.set(data.x, data.y, data.z);
-          remotePeers[conn.peer].targetRotY = data.ry;
+        if (data.type === 'sync' && remotePeers[conn.peer]) {
+          const p = remotePeers[conn.peer];
+          p.targetPos.set(data.x, data.y, data.z);
+          p.targetRotY = data.ry;
+          p.isMoving = data.moving;
         }
       });
 
@@ -241,58 +345,66 @@
       conn.on('error', () => removeRemotePeer(conn.peer));
     }
 
-    function removeRemotePeer(peerId) {
-      if (remotePeers[peerId]) {
-        scene.remove(remotePeers[peerId].mesh);
-        if (remotePeers[peerId].conn) remotePeers[peerId].conn.close();
-        delete remotePeers[peerId];
+    function removeRemotePeer(id) {
+      if (remotePeers[id]) {
+        scene.remove(remotePeers[id].avatar.root);
+        if (remotePeers[id].conn) remotePeers[id].conn.close();
+        delete remotePeers[id];
       }
     }
 
-    // ==========================================
-    // 5. REGULACIÓN DE EMISIÓN DE RED (20 Hz)
-    // ==========================================
+    // Emisión regulada a 20 Hz
     setInterval(() => {
       if (!peer || peer.disconnected) return;
 
+      const moving = keys['w'] || keys['s'] || keys['a'] || keys['d'];
       const payload = {
-        type: 'transform',
-        x: Number(localAvatar.position.x.toFixed(3)),
-        y: Number(localAvatar.position.y.toFixed(3)),
-        z: Number(localAvatar.position.z.toFixed(3)),
-        ry: Number(localAvatar.rotation.y.toFixed(3))
+        type: 'sync',
+        x: Number(localAvatar.root.position.x.toFixed(3)),
+        y: Number(localAvatar.root.position.y.toFixed(3)),
+        z: Number(localAvatar.root.position.z.toFixed(3)),
+        ry: Number(localAvatar.root.rotation.y.toFixed(3)),
+        moving: moving
       };
 
       for (const id in remotePeers) {
-        const p = remotePeers[id];
-        if (p.conn && p.conn.open) {
-          p.conn.send(payload);
+        if (remotePeers[id].conn && remotePeers[id].conn.open) {
+          remotePeers[id].conn.send(payload);
         }
       }
-    }, 50); // 50 ms = 20 Hz
+    }, 50);
 
     // ==========================================
-    // 6. BUCLE DE RENDER E INTERPOLACIÓN (LERP)
+    // 7. BUCLE DE RENDER E INTERPOLACIÓN
     // ==========================================
-    const clock = new THREE.Clock();
-
     function animate() {
       requestAnimationFrame(animate);
-      const delta = clock.getDelta();
 
-      handleLocalMovement();
+      handleLocalInput();
 
-      // Suavizado visual de avatares remotos
+      // Interpolar y animar pares remotos
       for (const id in remotePeers) {
         const p = remotePeers[id];
-        // LERP de posición: factor 0.15 a 60 fps
-        p.mesh.position.lerp(p.targetPos, 0.15);
+        p.avatar.root.position.lerp(p.targetPos, 0.15);
 
-        // Interpolación angular más corta
-        let diff = p.targetRotY - p.mesh.rotation.y;
+        let diff = p.targetRotY - p.avatar.root.rotation.y;
         while (diff < -Math.PI) diff += Math.PI * 2;
         while (diff > Math.PI) diff -= Math.PI * 2;
-        p.mesh.rotation.y += diff * 0.15;
+        p.avatar.root.rotation.y += diff * 0.15;
+
+        // Marcha del par remoto
+        if (p.isMoving) {
+          p.walkCycle += 0.2;
+          p.avatar.leftLeg.rotation.x = Math.sin(p.walkCycle) * 0.6;
+          p.avatar.rightLeg.rotation.x = -Math.sin(p.walkCycle) * 0.6;
+          p.avatar.leftArm.rotation.x = -Math.sin(p.walkCycle) * 0.6;
+          p.avatar.rightArm.rotation.x = Math.sin(p.walkCycle) * 0.6;
+        } else {
+          p.avatar.leftLeg.rotation.x = 0;
+          p.avatar.rightLeg.rotation.x = 0;
+          p.avatar.leftArm.rotation.x = 0;
+          p.avatar.rightArm.rotation.x = 0;
+        }
       }
 
       renderer.render(scene, camera);
