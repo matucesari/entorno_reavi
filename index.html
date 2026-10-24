@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Auditorio Virtual UTN - P2P</title>
+  <title>Auditorio UTN - P2P</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
       width: 100%; height: 100%;
       overflow: hidden;
-      background: #1e242c;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #1a222d;
+      font-family: monospace;
       user-select: none;
       -webkit-user-select: none;
     }
@@ -19,60 +19,44 @@
       width: 100%; height: 100%;
       display: block; z-index: 1;
     }
-
-    /* Modal de Ingreso Inicial */
     #loginModal {
       position: absolute; inset: 0;
       display: flex; align-items: center; justify-content: center;
-      background: rgba(15, 20, 28, 0.85);
+      background: rgba(10, 15, 22, 0.88);
       z-index: 1000;
     }
-    .modal-card {
+    .modal-box {
       background: #ffffff;
-      padding: 30px 32px;
-      border-radius: 12px;
-      width: 90%; max-width: 380px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-      text-align: left;
+      padding: 24px;
+      border-radius: 8px;
+      width: 90%; max-width: 360px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      color: #112233;
     }
-    .modal-card h2 {
-      font-size: 20px; color: #004c99; margin-bottom: 6px; font-weight: 700;
+    .modal-box h2 {
+      font-size: 18px; margin-bottom: 8px; color: #0055aa;
     }
-    .modal-card p {
-      font-size: 13px; color: #556677; margin-bottom: 20px; line-height: 1.4;
+    .modal-box p {
+      font-size: 12px; margin-bottom: 16px; color: #556677;
     }
-    .modal-card label {
-      display: block; font-size: 12px; font-weight: 600; color: #334455; margin-bottom: 4px;
+    .modal-box label {
+      display: block; font-size: 11px; font-weight: bold; margin-bottom: 4px;
     }
-    .modal-card input {
-      width: 100%; padding: 10px 12px; margin-bottom: 14px;
-      border: 1px solid #ccd6e0; border-radius: 6px; font-size: 14px;
-      outline: none; transition: border 0.2s;
+    .modal-box input {
+      width: 100%; padding: 8px 10px; margin-bottom: 12px;
+      border: 1px solid #99aacc; border-radius: 4px; font-family: monospace;
     }
-    .modal-card input:focus { border-color: #0066cc; }
-    .modal-card button {
-      width: 100%; padding: 12px; background: #0066cc; color: #ffffff;
-      border: none; border-radius: 6px; font-size: 15px; font-weight: 600;
-      cursor: pointer; transition: background 0.2s;
+    .modal-box button {
+      width: 100%; padding: 10px; background: #0066cc; color: #ffffff;
+      border: none; border-radius: 4px; font-weight: bold; cursor: pointer;
     }
-    .modal-card button:hover { background: #004c99; }
-
-    /* HUD en sesión */
+    .modal-box button:hover { background: #004c99; }
     #hud {
       display: none;
-      position: absolute; top: 14px; left: 14px; z-index: 100;
-      background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(4px);
-      padding: 10px 16px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08); pointer-events: none;
-    }
-    #hudTitle { font-weight: 700; font-size: 13px; color: #004c99; }
-    #hudStats { font-size: 11px; color: #4a5568; margin-top: 3px; }
-
-    /* Indicador de ayuda móvil */
-    #touchHelp {
-      display: none; position: absolute; bottom: 20px; left: 0; right: 0;
-      text-align: center; color: rgba(255,255,255,0.7); font-size: 12px;
-      z-index: 100; pointer-events: none;
+      position: absolute; top: 12px; left: 12px; z-index: 100;
+      background: rgba(255, 255, 255, 0.92);
+      padding: 10px 14px; border-radius: 6px; border: 1px solid #99aacc;
+      font-size: 12px; color: #112233; pointer-events: none;
     }
   </style>
 
@@ -84,33 +68,25 @@
 <body>
   <canvas id="canvas3d"></canvas>
 
-  <!-- Ventana Modal de Acceso -->
   <div id="loginModal">
-    <div class="modal-card">
-      <h2>Auditorio UTN FRM</h2>
-      <p>Entorno virtual multiusuario para clases y eventos académicos.</p>
-      
-      <label for="username">Nombre y Apellido</label>
-      <input type="text" id="username" value="Docente" placeholder="Ej: Dra. Matilde Césari">
-
-      <label for="roomId">Identificador del Auditorio</label>
-      <input type="text" id="roomId" value="auditorio-1" placeholder="Ej: auditorio-1">
-
-      <button id="btnJoin">Ingresar al Auditorio</button>
+    <div class="modal-box">
+      <h2>Auditorio UTN</h2>
+      <p>Entorno Virtual Educativo P2P</p>
+      <label>Usuario</label>
+      <input type="text" id="username" value="Docente">
+      <label>Sala</label>
+      <input type="text" id="roomId" value="auditorio-1">
+      <button id="btnJoin">Ingresar</button>
     </div>
   </div>
 
-  <!-- HUD flotante activo durante la sesión -->
   <div id="hud">
-    <div id="hudTitle">Auditorio Tecnológico Universitario</div>
-    <div id="hudStats">Conectando...</div>
+    <div id="hudText">Iniciando...</div>
   </div>
-
-  <div id="touchHelp">Usa la mitad izquierda para caminar • Mitad derecha para girar vista</div>
 
   <script>
     // ==========================================
-    // 1. CONFIGURACIÓN FIREBASE
+    // 1. FIREBASE
     // ==========================================
     const firebaseConfig = {
       apiKey: "AIzaSyBgYPJWcmfimhT0FSLp92A4ocFDNOrhTY0",
@@ -127,117 +103,45 @@
     const db = firebase.database();
 
     // ==========================================
-    // 2. ESCENA THREE.JS Y COLORIMETRÍA CALIBRADA
+    // 2. MOTOR THREE.JS
     // ==========================================
     const canvas = document.getElementById('canvas3d');
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x283340); // Fondo sobrio arquitectónico
-    scene.fog = new THREE.FogExp2(0x283340, 0.012);
+    scene.background = new THREE.Color(0x3a4856);
 
-    const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 500);
-    const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, powerPreference: "high-performance" });
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
+    const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-    // Luz hemisférica: cielo frío tenue, rebote de madera cálida
-    const hemiLight = new THREE.HemisphereLight(0xe6f0fa, 0x5a4838, 0.55);
-    scene.add(hemiLight);
-
-    // Iluminación direccional principal cenital suave
-    const dirLight = new THREE.DirectionalLight(0xfff7ea, 0.65);
-    dirLight.position.set(10, 22, 10);
-    dirLight.castShadow = true;
-    dirLight.shadow.mapSize.width = 1024;
-    dirLight.shadow.mapSize.height = 1024;
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x665544, 0.7));
+    const dirLight = new THREE.DirectionalLight(0xffeedd, 0.6);
+    dirLight.position.set(10, 20, 10);
     scene.add(dirLight);
 
-    // Spot focalizado en el estrado del orador
-    const spotStage = new THREE.SpotLight(0xffecd2, 1.0, 45, Math.PI / 4, 0.3);
-    spotStage.position.set(0, 14, -14);
-    spotStage.target.position.set(0, 1.5, -23);
-    scene.add(spotStage);
-    scene.add(spotStage.target);
-
     // ==========================================
-    // 3. TEXTURA PROCEDURAL DE LA PANTALLA
+    // 3. AUDITORIO
     // ==========================================
-    function createScreenTexture() {
-      const c = document.createElement('canvas');
-      c.width = 1024; c.height = 512;
-      const ctx = c.getContext('2d');
-      
-      const grad = ctx.createLinearGradient(0, 0, 1024, 512);
-      grad.addColorStop(0, '#002544');
-      grad.addColorStop(1, '#004077');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 1024, 512);
+    const matFloor = new THREE.MeshLambertMaterial({ color: 0x8a6242 });
+    const matWall = new THREE.MeshLambertMaterial({ color: 0xd0d8e2 });
+    const matFrontWall = new THREE.MeshLambertMaterial({ color: 0x1e2833 });
+    const matStage = new THREE.MeshLambertMaterial({ color: 0x5a341a });
+    const matScreen = new THREE.MeshBasicMaterial({ color: 0x092b4f });
+    const matDesk = new THREE.MeshLambertMaterial({ color: 0xe6ecf2 });
+    const matMetal = new THREE.MeshLambertMaterial({ color: 0x4f5d6c });
 
-      ctx.fillStyle = '#00bcd4';
-      ctx.fillRect(60, 60, 10, 75);
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 34px sans-serif';
-      ctx.fillText('UNIVERSIDAD TECNOLÓGICA NACIONAL', 90, 98);
-      ctx.font = '21px sans-serif';
-      ctx.fillStyle = '#9fd2ff';
-      ctx.fillText('Facultad Regional Mendoza — Auditorio Híbrido P2P', 90, 130);
-
-      ctx.strokeStyle = '#00bcd4';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(90, 175, 844, 270);
-
-      ctx.fillStyle = '#00e5ff';
-      ctx.font = 'bold 22px monospace';
-      ctx.fillText('ESTADO DE LA SESIÓN', 120, 220);
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '19px monospace';
-      ctx.fillText('• Nodo local activo y sincronizado', 120, 265);
-      ctx.fillText('• Canal de datos WebRTC directo P2P', 120, 305);
-      ctx.fillText('• Servidor: Serverless Cero Costos (Mesh)', 120, 345);
-
-      return new THREE.CanvasTexture(c);
-    }
-
-    // ==========================================
-    // 4. ARQUITECTURA DEL RECINTO
-    // ==========================================
-    const matFloor = new THREE.MeshLambertMaterial({ color: 0x8a6343 });      // Parquet madera cálida
-    const matWall = new THREE.MeshLambertMaterial({ color: 0xd4dce4 });       // Paredes cemento claro
-    const matFrontWall = new THREE.MeshLambertMaterial({ color: 0x1e2733 });  // Fondo oscuro de tarima
-    const matStage = new THREE.MeshLambertMaterial({ color: 0x5a361d });      // Tarima madera noble
-    const matDesk = new THREE.MeshLambertMaterial({ color: 0xe8ecf0 });       // Pupitres claros
-    const matMetal = new THREE.MeshLambertMaterial({ color: 0x485664 });      // Estructuras tubulares
-
-    // Suelo
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(42, 64), matFloor);
     floor.rotation.x = -Math.PI / 2;
-    floor.receiveShadow = true;
     scene.add(floor);
 
-    // Pared Frontal y Pantalla
     const frontWall = new THREE.Mesh(new THREE.BoxGeometry(42, 14, 1), matFrontWall);
     frontWall.position.set(0, 7, -31);
     scene.add(frontWall);
 
-    const screen = new THREE.Mesh(new THREE.PlaneGeometry(18, 9), new THREE.MeshBasicMaterial({ map: createScreenTexture() }));
+    const screen = new THREE.Mesh(new THREE.PlaneGeometry(18, 9), matScreen);
     screen.position.set(0, 7.5, -30.4);
     scene.add(screen);
 
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(18.4, 9.4, 0.2), matMetal);
-    frame.position.set(0, 7.5, -30.5);
-    scene.add(frame);
-
-    // Pizarras laterales blancas
-    const matWhiteboard = new THREE.MeshLambertMaterial({ color: 0xffffff });
-    [-13.5, 13.5].forEach(x => {
-      const wb = new THREE.Mesh(new THREE.PlaneGeometry(6.5, 4.5), matWhiteboard);
-      wb.position.set(x, 6, -30.4);
-      scene.add(wb);
-    });
-
-    // Paredes perimetrales
     const backWall = new THREE.Mesh(new THREE.BoxGeometry(42, 14, 1), matWall);
     backWall.position.set(0, 7, 31);
     scene.add(backWall);
@@ -250,95 +154,59 @@
     rightWall.position.set(21, 7, 0);
     scene.add(rightWall);
 
-    // Estrado
     const stage = new THREE.Mesh(new THREE.BoxGeometry(26, 0.7, 11), matStage);
     stage.position.set(0, 0.35, -23);
-    stage.receiveShadow = true;
     scene.add(stage);
 
-    const podium = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.25, 1.1), matDesk);
-    podium.position.set(-4, 1.3, -20);
-    scene.add(podium);
-
-    // Gradas con pupitres y pasillo central
     for (let r = 0; r < 5; r++) {
       const zPos = -7 + (r * 5.5);
       const yStep = r * 0.45;
 
       const step = new THREE.Mesh(new THREE.BoxGeometry(34, 0.45 + yStep, 5), matWall);
       step.position.set(0, (0.45 + yStep) / 2, zPos);
-      step.receiveShadow = true;
       scene.add(step);
 
-      [-9, 9].forEach(xOffset => {
+      [-9, 9].forEach(x => {
         const desk = new THREE.Mesh(new THREE.BoxGeometry(11, 0.08, 0.9), matDesk);
-        desk.position.set(xOffset, 0.9 + yStep, zPos);
-        desk.castShadow = true;
+        desk.position.set(x, 0.9 + yStep, zPos);
         scene.add(desk);
 
         [-4.5, 4.5].forEach(legX => {
           const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.9 + yStep), matMetal);
-          leg.position.set(xOffset + legX, (0.9 + yStep) / 2, zPos);
+          leg.position.set(x + legX, (0.9 + yStep) / 2, zPos);
           scene.add(leg);
         });
       });
     }
 
     // ==========================================
-    // 5. FABRICACIÓN DE AVATARES ARTICULADOS
+    // 4. AVATARES
     // ==========================================
     function createAvatar(accentHex) {
       const root = new THREE.Group();
-      const suitMat = new THREE.MeshLambertMaterial({ color: 0x22303d });
-      const accentMat = new THREE.MeshLambertMaterial({ color: accentHex });
-      const skinMat = new THREE.MeshLambertMaterial({ color: 0xedd0be });
-      const visorMat = new THREE.MeshBasicMaterial({ color: 0x00e5ff });
-
-      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.75, 0.32), accentMat);
-      torso.position.y = 1.25;
-      torso.castShadow = true;
+      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.8, 0.35), new THREE.MeshLambertMaterial({ color: accentHex }));
+      torso.position.y = 1.2;
       root.add(torso);
 
-      const head = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.34, 0.32), skinMat);
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 0.35), new THREE.MeshLambertMaterial({ color: 0xedd0be }));
       head.position.y = 1.8;
-      head.castShadow = true;
       root.add(head);
 
-      const visor = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.12, 0.06), visorMat);
-      visor.position.set(0, 1.82, -0.17);
+      const visor = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, 0.05), new THREE.MeshBasicMaterial({ color: 0x00f0ff }));
+      visor.position.set(0, 1.82, -0.18);
       root.add(visor);
 
-      const limbGeo = new THREE.BoxGeometry(0.16, 0.7, 0.16);
-
-      const leftArm = new THREE.Mesh(limbGeo, suitMat);
-      leftArm.position.set(-0.4, 1.25, 0);
-      root.add(leftArm);
-
-      const rightArm = new THREE.Mesh(limbGeo, suitMat);
-      rightArm.position.set(0.4, 1.25, 0);
-      root.add(rightArm);
-
-      const leftLeg = new THREE.Mesh(limbGeo, suitMat);
-      leftLeg.position.set(-0.16, 0.45, 0);
-      leftLeg.castShadow = true;
-      root.add(leftLeg);
-
-      const rightLeg = new THREE.Mesh(limbGeo, suitMat);
-      rightLeg.position.set(0.16, 0.45, 0);
-      rightLeg.castShadow = true;
-      root.add(rightLeg);
-
-      return { root, leftArm, rightArm, leftLeg, rightLeg };
+      return root;
     }
 
     const localAvatar = createAvatar(0x0066cc);
-    localAvatar.root.position.set(0, 0, 7);
-    scene.add(localAvatar.root);
+    localAvatar.position.set(0, 0, 7);
+    scene.add(localAvatar);
 
     const remotePeers = {};
 
     // ==========================================
-    // 6. CONTROLES UNIFICADOS (PC + MÓVIL)
+    // 5. CONTROLES (MOUSE, TECLADO, TÁCTIL)
     // ==========================================
     let isConnected = false;
     const keys = {};
@@ -347,29 +215,25 @@
 
     let localAngle = 0;
     let pitchAngle = 0;
-    let walkCycle = 0;
-    const mouseSensitivity = 0.0025;
 
-    function isTouchDevice() {
+    function isTouch() {
       return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     }
 
-    // Clic sobre el lienzo 3D captura el mouse si estamos en PC
     canvas.addEventListener('click', () => {
-      if (isConnected && !isTouchDevice()) {
+      if (isConnected && !isTouch()) {
         canvas.requestPointerLock();
       }
     });
 
     document.addEventListener('mousemove', (e) => {
       if (document.pointerLockElement === canvas) {
-        localAngle -= e.movementX * mouseSensitivity;
-        pitchAngle += e.movementY * mouseSensitivity;
-        pitchAngle = Math.max(-0.35, Math.min(0.55, pitchAngle));
+        localAngle -= e.movementX * 0.003;
+        pitchAngle += e.movementY * 0.003;
+        pitchAngle = Math.max(-0.4, Math.min(0.5, pitchAngle));
       }
     });
 
-    // Control Táctil (Pantalla Dividida)
     let touchStartX = 0, touchStartY = 0;
     let touchMoveX = 0, touchMoveY = 0;
     let leftTouchId = null, rightTouchId = null;
@@ -381,13 +245,11 @@
         const t = e.changedTouches[i];
         if (t.clientX < window.innerWidth / 2 && leftTouchId === null) {
           leftTouchId = t.identifier;
-          touchStartX = t.clientX;
-          touchStartY = t.clientY;
+          touchStartX = t.clientX; touchStartY = t.clientY;
           touchMoveX = 0; touchMoveY = 0;
         } else if (t.clientX >= window.innerWidth / 2 && rightTouchId === null) {
           rightTouchId = t.identifier;
-          lastTouchCamX = t.clientX;
-          lastTouchCamY = t.clientY;
+          lastTouchCamX = t.clientX; lastTouchCamY = t.clientY;
         }
       }
     }, { passive: false });
@@ -403,13 +265,12 @@
           touchMoveX = Math.max(-0.15, Math.min(0.15, touchMoveX));
           touchMoveY = Math.max(-0.15, Math.min(0.15, touchMoveY));
         } else if (t.identifier === rightTouchId) {
-          const deltaX = t.clientX - lastTouchCamX;
-          const deltaY = t.clientY - lastTouchCamY;
-          localAngle -= deltaX * 0.006;
-          pitchAngle += deltaY * 0.006;
-          pitchAngle = Math.max(-0.35, Math.min(0.55, pitchAngle));
-          lastTouchCamX = t.clientX;
-          lastTouchCamY = t.clientY;
+          const dx = t.clientX - lastTouchCamX;
+          const dy = t.clientY - lastTouchCamY;
+          localAngle -= dx * 0.005;
+          pitchAngle += dy * 0.005;
+          pitchAngle = Math.max(-0.4, Math.min(0.5, pitchAngle));
+          lastTouchCamX = t.clientX; lastTouchCamY = t.clientY;
         }
       }
     }, { passive: false });
@@ -422,11 +283,9 @@
     window.addEventListener('touchcancel', (e) => { for (let i = 0; i < e.changedTouches.length; i++) resetTouch(e.changedTouches[i].identifier); });
 
     function handleLocalInput() {
-      let moved = false;
-
       if (keys['q']) localAngle += 0.04;
       if (keys['e']) localAngle -= 0.04;
-      localAvatar.root.rotation.y = localAngle;
+      localAvatar.rotation.y = localAngle;
 
       const fwd = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), localAngle);
       const rgt = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), localAngle);
@@ -435,42 +294,20 @@
       const strDelta = (keys['d'] ? 0.15 : 0) - (keys['a'] ? 0.15 : 0) + touchMoveX;
 
       if (Math.abs(fwdDelta) > 0.01 || Math.abs(strDelta) > 0.01) {
-        localAvatar.root.position.addScaledVector(fwd, fwdDelta);
-        localAvatar.root.position.addScaledVector(rgt, strDelta);
-        moved = true;
+        localAvatar.position.addScaledVector(fwd, fwdDelta);
+        localAvatar.position.addScaledVector(rgt, strDelta);
       }
 
-      // Límites del recinto
-      localAvatar.root.position.x = Math.max(-19, Math.min(19, localAvatar.root.position.x));
-      localAvatar.root.position.z = Math.max(-28, Math.min(27, localAvatar.root.position.z));
+      localAvatar.position.x = Math.max(-19, Math.min(19, localAvatar.position.x));
+      localAvatar.position.z = Math.max(-28, Math.min(27, localAvatar.position.z));
 
-      // Animación de extremidades
-      if (moved) {
-        walkCycle += 0.22;
-        localAvatar.leftLeg.rotation.x = Math.sin(walkCycle) * 0.55;
-        localAvatar.rightLeg.rotation.x = -Math.sin(walkCycle) * 0.55;
-        localAvatar.leftArm.rotation.x = -Math.sin(walkCycle) * 0.55;
-        localAvatar.rightArm.rotation.x = Math.sin(walkCycle) * 0.55;
-      } else {
-        localAvatar.leftLeg.rotation.x = 0;
-        localAvatar.rightLeg.rotation.x = 0;
-        localAvatar.leftArm.rotation.x = 0;
-        localAvatar.rightArm.rotation.x = 0;
-      }
-
-      // Cámara en tercera persona con órbita vertical
-      const camDist = 4.8;
-      const camHeight = 2.4 + (pitchAngle * 2.2);
-      const camOffset = new THREE.Vector3(0, camHeight, camDist * Math.cos(pitchAngle)).applyAxisAngle(new THREE.Vector3(0, 1, 0), localAngle);
-
-      camera.position.copy(localAvatar.root.position).add(camOffset);
-      camera.lookAt(localAvatar.root.position.x, localAvatar.root.position.y + 1.35 - (pitchAngle * 1.2), localAvatar.root.position.z);
-
-      return moved;
+      const camOffset = new THREE.Vector3(0, 2.5 + (pitchAngle * 2.0), 5.0 * Math.cos(pitchAngle)).applyAxisAngle(new THREE.Vector3(0, 1, 0), localAngle);
+      camera.position.copy(localAvatar.position).add(camOffset);
+      camera.lookAt(localAvatar.position.x, localAvatar.position.y + 1.2 - (pitchAngle * 1.2), localAvatar.position.z);
     }
 
     // ==========================================
-    // 7. INGRESO Y COMUNICACIÓN P2P
+    // 6. RED P2P + FIREBASE
     // ==========================================
     let peer = null;
     let myId = null;
@@ -480,23 +317,18 @@
       const userName = document.getElementById('username').value.trim();
       if (!roomName || !userName) return;
 
-      // Ocultar modal e iniciar HUD
       document.getElementById('loginModal').style.display = 'none';
       document.getElementById('hud').style.display = 'block';
-      if (isTouchDevice()) {
-        document.getElementById('touchHelp').style.display = 'block';
-      } else {
-        canvas.requestPointerLock();
-      }
+      if (!isTouch()) canvas.requestPointerLock();
 
       isConnected = true;
-      document.getElementById('hudStats').innerText = `Conectando con la sala ${roomName}...`;
+      document.getElementById('hudText').innerText = `Conectando...`;
 
       peer = new Peer();
 
       peer.on('open', (id) => {
         myId = id;
-        document.getElementById('hudStats').innerText = `Usuario: ${userName} | Sala: ${roomName} | ID: ${id.substring(0,6)}`;
+        document.getElementById('hudText').innerText = `Sala: ${roomName} | Usuario: ${userName}`;
 
         peer.on('connection', (conn) => setupConnection(conn));
 
@@ -519,23 +351,15 @@
         roomPeersRef.on('child_removed', (snap) => removeRemotePeer(snap.key));
       });
 
-      peer.on('error', (err) => console.error("PeerJS error:", err));
+      peer.on('error', (err) => console.error("PeerJS:", err));
     });
 
     function setupConnection(conn) {
       conn.on('open', () => {
         if (!remotePeers[conn.peer]) {
-          const avatar = createAvatar(0xd9531e); // Color anaranjado para pares remotos
-          scene.add(avatar.root);
-
-          remotePeers[conn.peer] = {
-            conn: conn,
-            avatar: avatar,
-            targetPos: new THREE.Vector3(0, 0, 7),
-            targetRotY: 0,
-            walkCycle: 0,
-            isMoving: false
-          };
+          const mesh = createAvatar(0xd9531e);
+          scene.add(mesh);
+          remotePeers[conn.peer] = { conn: conn, mesh: mesh, targetPos: new THREE.Vector3(0, 0, 7), targetRotY: 0 };
         } else {
           remotePeers[conn.peer].conn = conn;
         }
@@ -543,10 +367,8 @@
 
       conn.on('data', (data) => {
         if (data.t === 's' && remotePeers[conn.peer]) {
-          const p = remotePeers[conn.peer];
-          p.targetPos.set(data.x, data.y, data.z);
-          p.targetRotY = data.ry;
-          p.isMoving = data.m;
+          remotePeers[conn.peer].targetPos.set(data.x, data.y, data.z);
+          remotePeers[conn.peer].targetRotY = data.ry;
         }
       });
 
@@ -556,29 +378,21 @@
 
     function removeRemotePeer(id) {
       if (remotePeers[id]) {
-        scene.remove(remotePeers[id].avatar.root);
+        scene.remove(remotePeers[id].mesh);
         if (remotePeers[id].conn) remotePeers[id].conn.close();
         delete remotePeers[id];
       }
     }
 
-    // Transmisión de coordenadas regulada a 20 Hz
     setInterval(() => {
       if (!peer || !myId || !isConnected) return;
-
-      const isKeyMoving = keys['w'] || keys['s'] || keys['a'] || keys['d'];
-      const isTouchMoving = Math.abs(touchMoveX) > 0.01 || Math.abs(touchMoveY) > 0.01;
-      const moving = isKeyMoving || isTouchMoving;
-
       const payload = {
         t: 's',
-        x: Number(localAvatar.root.position.x.toFixed(2)),
-        y: Number(localAvatar.root.position.y.toFixed(2)),
-        z: Number(localAvatar.root.position.z.toFixed(2)),
-        ry: Number(localAvatar.root.rotation.y.toFixed(2)),
-        m: moving
+        x: Number(localAvatar.position.x.toFixed(2)),
+        y: Number(localAvatar.position.y.toFixed(2)),
+        z: Number(localAvatar.position.z.toFixed(2)),
+        ry: Number(localAvatar.rotation.y.toFixed(2))
       };
-
       for (const id in remotePeers) {
         const p = remotePeers[id];
         if (p.conn && p.conn.open) p.conn.send(payload);
@@ -586,36 +400,20 @@
     }, 50);
 
     // ==========================================
-    // 8. BUCLE DE ANIMACIÓN Y RENDER
+    // 7. RENDER LOOP
     // ==========================================
     function animate() {
       requestAnimationFrame(animate);
 
       if (isConnected) {
         handleLocalInput();
-
-        // Interpolación de avatares de compañeros/alumnos
         for (const id in remotePeers) {
           const p = remotePeers[id];
-          p.avatar.root.position.lerp(p.targetPos, 0.15);
-
-          let diff = p.targetRotY - p.avatar.root.rotation.y;
+          p.mesh.position.lerp(p.targetPos, 0.15);
+          let diff = p.targetRotY - p.mesh.rotation.y;
           while (diff < -Math.PI) diff += Math.PI * 2;
           while (diff > Math.PI) diff -= Math.PI * 2;
-          p.avatar.root.rotation.y += diff * 0.15;
-
-          if (p.isMoving) {
-            p.walkCycle += 0.22;
-            p.avatar.leftLeg.rotation.x = Math.sin(p.walkCycle) * 0.55;
-            p.avatar.rightLeg.rotation.x = -Math.sin(p.walkCycle) * 0.55;
-            p.avatar.leftArm.rotation.x = -Math.sin(p.walkCycle) * 0.55;
-            p.avatar.rightArm.rotation.x = Math.sin(p.walkCycle) * 0.55;
-          } else {
-            p.avatar.leftLeg.rotation.x = 0;
-            p.avatar.rightLeg.rotation.x = 0;
-            p.avatar.leftArm.rotation.x = 0;
-            p.avatar.rightArm.rotation.x = 0;
-          }
+          p.mesh.rotation.y += diff * 0.15;
         }
       }
 
