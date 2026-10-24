@@ -6,20 +6,21 @@
   <title>Auditorio Virtual UTN - P2P</title>
   <style>
     * { box-sizing: border-box; }
-    body { margin: 0; overflow: hidden; background: #0a0a10; font-family: monospace; }
+    body { margin: 0; overflow: hidden; background: #c8d4df; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; }
     #hud {
-      position: absolute; top: 12px; left: 12px; z-index: 100;
-      background: rgba(10, 15, 25, 0.9); color: #00ffcc;
-      padding: 12px 18px; border-radius: 6px; border: 1px solid #00ffcc55;
-      max-width: 90vw;
+      position: absolute; top: 14px; left: 14px; z-index: 100;
+      background: rgba(255, 255, 255, 0.92); color: #1a2530;
+      padding: 14px 20px; border-radius: 8px; border: 1px solid #c0d0e0;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08); max-width: 90vw;
     }
     input, button {
-      background: #181d26; color: #fff; border: 1px solid #00ffcc66;
-      padding: 6px 10px; margin-top: 6px; border-radius: 4px;
+      background: #f0f4f8; color: #1a2530; border: 1px solid #b0c4de;
+      padding: 7px 12px; margin-top: 6px; border-radius: 5px; font-size: 13px;
     }
-    button { cursor: pointer; background: #00ffcc22; font-weight: bold; }
-    button:hover { background: #00ffcc44; }
-    #stats { font-size: 11px; color: #8899aa; margin-top: 6px; line-height: 1.4; }
+    input:focus { outline: 2px solid #0066cc; background: #fff; }
+    button { cursor: pointer; background: #0066cc; color: #fff; font-weight: 600; border: none; }
+    button:hover { background: #0052a3; }
+    #stats { font-size: 11px; color: #5a6b7c; margin-top: 8px; line-height: 1.4; }
   </style>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -29,13 +30,13 @@
 </head>
 <body>
   <div id="hud">
-    <div style="font-weight: bold; font-size: 14px;">Auditorio Virtual UTN</div>
+    <div style="font-weight: 700; font-size: 15px; color: #004c99;">Auditorio Tecnológico Universitario</div>
     <div id="connectionPanel">
-      <input type="text" id="username" placeholder="Nombre" value="Docente"><br>
+      <input type="text" id="username" placeholder="Nombre completo" value="Docente"><br>
       <input type="text" id="roomId" placeholder="ID Sala" value="auditorio-1"><br>
       <button id="btnJoin">Ingresar al Auditorio</button>
     </div>
-    <div id="stats">PC: Clic para mouse, W/A/S/D para caminar, Esc libera.<br>Móvil: Mitad izq. desplaza, mitad der. gira.</div>
+    <div id="stats">PC: Clic para fijar mouse, W/A/S/D para moverte, Esc libera.<br>Móvil: Mitad izq. camina, mitad der. rota.</div>
   </div>
 
   <script>
@@ -57,125 +58,323 @@
     const db = firebase.database();
 
     // ==========================================
-    // 2. ESCENA Y MOTOR THREE.JS
+    // 2. ESCENA, MOTOR Y LUZ NATURAL
     // ==========================================
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0e1118);
-    scene.fog = new THREE.FogExp2(0x0e1118, 0.015);
+    scene.background = new THREE.Color(0xdce6f0);
+    scene.fog = new THREE.FogExp2(0xdce6f0, 0.008);
 
-    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 500);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
     document.body.appendChild(renderer.domElement);
 
-    scene.add(new THREE.AmbientLight(0xddeeff, 0.5));
+    // Luz ambiental equilibrada: cielo azul pálido + rebote de suelo cálido
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0xc8b898, 0.75);
+    scene.add(hemiLight);
 
-    const stageSpot = new THREE.SpotLight(0xffffff, 1.2, 50, Math.PI / 4, 0.3);
-    stageSpot.position.set(0, 14, -12);
-    stageSpot.target.position.set(0, 2, -22);
-    stageSpot.castShadow = true;
-    scene.add(stageSpot);
-    scene.add(stageSpot.target);
+    // Luz solar suave desde ventanales
+    const sunLight = new THREE.DirectionalLight(0xfffaed, 0.9);
+    sunLight.position.set(-20, 25, 10);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
+    sunLight.shadow.camera.near = 0.5;
+    sunLight.shadow.camera.far = 80;
+    sunLight.shadow.camera.left = -25;
+    sunLight.shadow.camera.right = 25;
+    sunLight.shadow.camera.top = 35;
+    sunLight.shadow.camera.bottom = -35;
+    sunLight.shadow.bias = -0.0005;
+    scene.add(sunLight);
+
+    // Reflector cálido sobre el estrado del orador
+    const spotStage = new THREE.SpotLight(0xfff1dc, 1.1, 45, Math.PI / 4, 0.35, 1.2);
+    spotStage.position.set(0, 16, -14);
+    spotStage.target.position.set(0, 1.5, -23);
+    spotStage.castShadow = true;
+    scene.add(spotStage);
+    scene.add(spotStage.target);
 
     // ==========================================
-    // 3. AUDITORIO
+    // 3. GENERADOR DE TEXTURAS PROCEDURALES ($0 Assets)
     // ==========================================
-    const matFloor = new THREE.MeshStandardMaterial({ color: 0x1a1d24, roughness: 0.7 });
-    const matWall = new THREE.MeshStandardMaterial({ color: 0x242a36, roughness: 0.9 });
-    const matWood = new THREE.MeshStandardMaterial({ color: 0x5c3a21, roughness: 0.5 });
-    const matDesk = new THREE.MeshStandardMaterial({ color: 0x2e3440, roughness: 0.6 });
+    function createWoodFloorTexture() {
+      const c = document.createElement('canvas');
+      c.width = 512;
+      c.height = 512;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#caa67a';
+      ctx.fillRect(0, 0, 512, 512);
+      ctx.strokeStyle = '#a48157';
+      ctx.lineWidth = 3;
+      for (let y = 0; y < 512; y += 32) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(512, y);
+        ctx.stroke();
+      }
+      for (let y = 0; y < 512; y += 32) {
+        const offset = (y / 32) % 2 === 0 ? 0 : 64;
+        for (let x = offset; x < 512; x += 128) {
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x, y + 32);
+          ctx.stroke();
+        }
+      }
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(10, 15);
+      return tex;
+    }
+
+    function createScreenSlideTexture() {
+      const c = document.createElement('canvas');
+      c.width = 1024;
+      c.height = 512;
+      const ctx = c.getContext('2d');
+      // Fondo diapositiva institucional
+      const grad = ctx.createLinearGradient(0, 0, 1024, 512);
+      grad.addColorStop(0, '#002b49');
+      grad.addColorStop(1, '#004c82');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1024, 512);
+
+      // Franja y logos estilizados
+      ctx.fillStyle = '#00a8cc';
+      ctx.fillRect(60, 60, 8, 80);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 38px sans-serif';
+      ctx.fillText('UNIVERSIDAD TECNOLÓGICA NACIONAL', 90, 100);
+
+      ctx.font = '22px sans-serif';
+      ctx.fillStyle = '#b0d6f5';
+      ctx.fillText('Facultad Regional Mendoza — Entorno Virtual 3D', 90, 135);
+
+      // Esquema gráfico simulado
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.fillRect(90, 180, 844, 250);
+      ctx.strokeStyle = '#00ffcc';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(90, 180, 844, 250);
+
+      ctx.fillStyle = '#00ffcc';
+      ctx.font = 'bold 24px monospace';
+      ctx.fillText('• Sala Virtual de Conexión Peer-to-Peer Activa', 120, 235);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '19px monospace';
+      ctx.fillText('  Arquitectura: WebRTC Mesh + Firebase Realtime Presence', 120, 280);
+      ctx.fillText('  Estado de Nodo: 0 ms Latencia de Servidor Central', 120, 320);
+      ctx.fillText('  Capacidad: Conexiones Directas Multiusuario', 120, 360);
+
+      const tex = new THREE.CanvasTexture(c);
+      return tex;
+    }
+
+    // ==========================================
+    // 4. ARQUITECTURA DEL AUDITORIO ILUMINADO
+    // ==========================================
+    const texFloor = createWoodFloorTexture();
+    const matFloor = new THREE.MeshStandardMaterial({ map: texFloor, roughness: 0.45, metalness: 0.05 });
+    const matWall = new THREE.MeshStandardMaterial({ color: 0xe8ecf2, roughness: 0.85 });
+    const matBackWall = new THREE.MeshStandardMaterial({ color: 0x1f2b38, roughness: 0.7 });
+    const matWoodStage = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.4 });
+    const matDesk = new THREE.MeshStandardMaterial({ color: 0xf5f7fa, roughness: 0.5 });
+    const matMetal = new THREE.MeshStandardMaterial({ color: 0x7a8b99, roughness: 0.3, metalness: 0.6 });
+    const matCeiling = new THREE.MeshStandardMaterial({ color: 0xf0f3f6, roughness: 0.9 });
 
     // Suelo
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 60), matFloor);
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(42, 64), matFloor);
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     scene.add(floor);
 
-    // Pared frontal y pantalla
-    const frontWall = new THREE.Mesh(new THREE.BoxGeometry(40, 14, 1), matWall);
-    frontWall.position.set(0, 7, -30);
+    // Techo
+    const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(42, 64), matCeiling);
+    ceiling.position.y = 13;
+    ceiling.rotation.x = Math.PI / 2;
+    scene.add(ceiling);
+
+    // Paneles de luz LED en el techo
+    const matLed = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    for (let row = -20; row <= 20; row += 10) {
+      for (let col of [-10, 0, 10]) {
+        const ledPanel = new THREE.Mesh(new THREE.BoxGeometry(3, 0.05, 5), matLed);
+        ledPanel.position.set(col, 12.96, row);
+        scene.add(ledPanel);
+      }
+    }
+
+    // Pared de fondo (Auditorio)
+    const frontWall = new THREE.Mesh(new THREE.BoxGeometry(42, 13, 1), matBackWall);
+    frontWall.position.set(0, 6.5, -31);
+    frontWall.receiveShadow = true;
     scene.add(frontWall);
 
-    const screen = new THREE.Mesh(new THREE.PlaneGeometry(18, 9), new THREE.MeshBasicMaterial({ color: 0x051525 }));
-    screen.position.set(0, 7.5, -29.4);
+    // Pared trasera
+    const backWall = new THREE.Mesh(new THREE.BoxGeometry(42, 13, 1), matWall);
+    backWall.position.set(0, 6.5, 31);
+    scene.add(backWall);
+
+    // Paredes laterales con ventanas simuladas
+    const wallLeft = new THREE.Mesh(new THREE.BoxGeometry(1, 13, 64), matWall);
+    wallLeft.position.set(-21, 6.5, 0);
+    scene.add(wallLeft);
+
+    const wallRight = new THREE.Mesh(new THREE.BoxGeometry(1, 13, 64), matWall);
+    wallRight.position.set(21, 6.5, 0);
+    scene.add(wallRight);
+
+    // Ventanales iluminados en pared izquierda
+    const matGlass = new THREE.MeshBasicMaterial({ color: 0xcde8f7 });
+    for (let wz = -15; wz <= 20; wz += 10) {
+      const windowFrame = new THREE.Mesh(new THREE.BoxGeometry(0.2, 7, 6), matGlass);
+      windowFrame.position.set(-20.4, 7, wz);
+      scene.add(windowFrame);
+    }
+
+    // Pantalla de proyección central activa
+    const texScreen = createScreenSlideTexture();
+    const matScreenActive = new THREE.MeshBasicMaterial({ map: texScreen });
+    const screen = new THREE.Mesh(new THREE.PlaneGeometry(18, 9), matScreenActive);
+    screen.position.set(0, 7.6, -30.4);
     scene.add(screen);
 
-    // Estrado y mesa del docente
-    const stage = new THREE.Mesh(new THREE.BoxGeometry(24, 0.8, 10), matWood);
-    stage.position.set(0, 0.4, -22);
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(18.4, 9.4, 0.2), matMetal);
+    frame.position.set(0, 7.6, -30.5);
+    scene.add(frame);
+
+    // Pizarras blancas laterales
+    const matWhiteboard = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 });
+    [-13.5, 13.5].forEach(wx => {
+      const wb = new THREE.Mesh(new THREE.PlaneGeometry(6.5, 4.5), matWhiteboard);
+      wb.position.set(wx, 6, -30.4);
+      scene.add(wb);
+
+      const wbFrame = new THREE.Mesh(new THREE.BoxGeometry(6.7, 4.7, 0.1), matMetal);
+      wbFrame.position.set(wx, 6, -30.46);
+      scene.add(wbFrame);
+    });
+
+    // Tarima del Docente
+    const stage = new THREE.Mesh(new THREE.BoxGeometry(26, 0.65, 11), matWoodStage);
+    stage.position.set(0, 0.32, -23);
     stage.receiveShadow = true;
+    stage.castShadow = true;
     scene.add(stage);
 
-    const podium = new THREE.Mesh(new THREE.BoxGeometry(3, 1.2, 1.2), matDesk);
-    podium.position.set(0, 1.4, -20);
-    scene.add(podium);
+    // Atril del disertante moderno
+    const podiumBase = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.25, 1.1), matDesk);
+    podiumBase.position.set(-4, 1.28, -20);
+    podiumBase.castShadow = true;
+    scene.add(podiumBase);
 
-    // Gradas y pupitres
+    // Gradas ascendentes y pupitres claros
     for (let r = 0; r < 5; r++) {
-      const zPos = -8 + (r * 5);
-      const yStep = r * 0.4;
+      const zPos = -7 + (r * 5.5);
+      const yStep = r * 0.45;
 
-      const riser = new THREE.Mesh(new THREE.BoxGeometry(32, 0.4 + yStep, 4.5), matFloor);
-      riser.position.set(0, (0.4 + yStep) / 2, zPos);
-      riser.receiveShadow = true;
-      scene.add(riser);
+      // Escalón
+      const step = new THREE.Mesh(new THREE.BoxGeometry(34, 0.45 + yStep, 5), matWall);
+      step.position.set(0, (0.45 + yStep) / 2, zPos);
+      step.receiveShadow = true;
+      scene.add(step);
 
-      [-8, 8].forEach(xOffset => {
-        const desk = new THREE.Mesh(new THREE.BoxGeometry(10, 0.8, 1), matWood);
-        desk.position.set(xOffset, 0.8 + yStep, zPos);
-        scene.add(desk);
+      // Pupitres (alas izquierda y derecha con pasillo)
+      [-9, 9].forEach(xOffset => {
+        // Tablero superior
+        const deskTop = new THREE.Mesh(new THREE.BoxGeometry(11, 0.08, 0.9), matDesk);
+        deskTop.position.set(xOffset, 0.9 + yStep, zPos);
+        deskTop.castShadow = true;
+        scene.add(deskTop);
+
+        // Estructura metálica
+        [-5, 5].forEach(legX => {
+          const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.9 + yStep), matMetal);
+          leg.position.set(xOffset + legX, (0.9 + yStep) / 2, zPos);
+          scene.add(leg);
+        });
+
+        // Sillas individuales detrás del pupitre
+        [-3.6, 0, 3.6].forEach(seatX => {
+          const seat = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.06, 0.7), matMetal);
+          seat.position.set(xOffset + seatX, 0.55 + yStep, zPos + 0.85);
+          scene.add(seat);
+          const back = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.6, 0.06), matMetal);
+          back.position.set(xOffset + seatX, 0.85 + yStep, zPos + 1.15);
+          scene.add(back);
+        });
       });
     }
 
     // ==========================================
-    // 4. AVATARES
+    // 5. AVATARES ESTILIZADOS
     // ==========================================
     function createHumanoidAvatar(accentHex) {
       const root = new THREE.Group();
-      const suitMat = new THREE.MeshStandardMaterial({ color: 0x222630 });
-      const accentMat = new THREE.MeshStandardMaterial({ color: accentHex });
-      const limbGeo = new THREE.BoxGeometry(0.18, 0.7, 0.18);
+      const suitMat = new THREE.MeshStandardMaterial({ color: 0x2e3846, roughness: 0.6 });
+      const accentMat = new THREE.MeshStandardMaterial({ color: accentHex, roughness: 0.35 });
+      const skinMat = new THREE.MeshStandardMaterial({ color: 0xf1c6a7, roughness: 0.7 });
+      const visorMat = new THREE.MeshPhysicalMaterial({ color: 0x00f0ff, roughness: 0.1, metalness: 0.1, transmission: 0.4, transparent: true });
 
-      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.75, 0.35), accentMat);
-      torso.position.y = 1.2;
+      // Torso cónico biselado
+      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.25, 0.8, 16), accentMat);
+      torso.position.y = 1.25;
+      torso.castShadow = true;
       root.add(torso);
 
-      const head = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.38, 0.35), new THREE.MeshStandardMaterial({ color: 0xd9a584 }));
-      head.position.y = 1.8;
+      // Cabeza redondeada
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 16, 16), skinMat);
+      head.position.y = 1.85;
+      head.castShadow = true;
       root.add(head);
 
-      const visor = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, 0.05), new THREE.MeshStandardMaterial({ color: 0x00ffcc }));
-      visor.position.set(0, 1.82, -0.19);
+      // Visor frontal aerodinámico
+      const visor = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.12, 16, 1, false, Math.PI * 0.7, Math.PI * 0.6), visorMat);
+      visor.position.set(0, 1.85, -0.15);
+      visor.rotation.y = Math.PI;
       root.add(visor);
 
-      const leftArm = new THREE.Mesh(limbGeo, suitMat);
-      leftArm.position.set(-0.42, 1.15, 0);
+      // Extremidades redondeadas
+      const armGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.7, 12);
+      const legGeo = new THREE.CylinderGeometry(0.1, 0.08, 0.8, 12);
+
+      const leftArm = new THREE.Mesh(armGeo, suitMat);
+      leftArm.position.set(-0.42, 1.25, 0);
       root.add(leftArm);
 
-      const rightArm = new THREE.Mesh(limbGeo, suitMat);
-      rightArm.position.set(0.42, 1.15, 0);
+      const rightArm = new THREE.Mesh(armGeo, suitMat);
+      rightArm.position.set(0.42, 1.25, 0);
       root.add(rightArm);
 
-      const leftLeg = new THREE.Mesh(limbGeo, suitMat);
+      const leftLeg = new THREE.Mesh(legGeo, suitMat);
       leftLeg.position.set(-0.18, 0.45, 0);
+      leftLeg.castShadow = true;
       root.add(leftLeg);
 
-      const rightLeg = new THREE.Mesh(limbGeo, suitMat);
+      const rightLeg = new THREE.Mesh(legGeo, suitMat);
       rightLeg.position.set(0.18, 0.45, 0);
+      rightLeg.castShadow = true;
       root.add(rightLeg);
 
       return { root, leftArm, rightArm, leftLeg, rightLeg };
     }
 
-    const localAvatar = createHumanoidAvatar(0x0099ff);
-    localAvatar.root.position.set(0, 0, 5);
+    const localAvatar = createHumanoidAvatar(0x0077ff);
+    localAvatar.root.position.set(0, 0, 7);
     scene.add(localAvatar.root);
 
     const remotePeers = {};
 
     // ==========================================
-    // 5. CONTROL: TECLADO + MOUSE + TÁCTIL
+    // 6. CONTROL HÍBRIDO (PC + MÓVIL)
     // ==========================================
     const keys = {};
     window.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
@@ -186,18 +385,15 @@
     let walkCycle = 0;
     const mouseSensitivity = 0.0025;
 
-    // Pointer Lock en PC
     renderer.domElement.addEventListener('click', () => {
-      if (!isTouchDevice()) {
-        renderer.domElement.requestPointerLock();
-      }
+      if (!isTouchDevice()) renderer.domElement.requestPointerLock();
     });
 
     document.addEventListener('mousemove', (e) => {
       if (document.pointerLockElement === renderer.domElement) {
         localAngle -= e.movementX * mouseSensitivity;
         pitchAngle += e.movementY * mouseSensitivity;
-        pitchAngle = Math.max(-0.4, Math.min(0.6, pitchAngle));
+        pitchAngle = Math.max(-0.35, Math.min(0.55, pitchAngle));
       }
     });
 
@@ -205,7 +401,6 @@
       return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     }
 
-    // Controles táctiles
     let touchStartX = 0, touchStartY = 0;
     let touchMoveX = 0, touchMoveY = 0;
     let leftTouchId = null;
@@ -224,4 +419,233 @@
         } else if (t.clientX >= window.innerWidth / 2 && rightTouchId === null) {
           rightTouchId = t.identifier;
           lastTouchCamX = t.clientX;
-          lastTouch
+          lastTouchCamY = t.clientY;
+        }
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (t.identifier === leftTouchId) {
+          touchMoveX = (t.clientX - touchStartX) * 0.003;
+          touchMoveY = (t.clientY - touchStartY) * 0.003;
+          touchMoveX = Math.max(-0.15, Math.min(0.15, touchMoveX));
+          touchMoveY = Math.max(-0.15, Math.min(0.15, touchMoveY));
+        } else if (t.identifier === rightTouchId) {
+          const deltaX = t.clientX - lastTouchCamX;
+          const deltaY = t.clientY - lastTouchCamY;
+          localAngle -= deltaX * 0.005;
+          pitchAngle += deltaY * 0.005;
+          pitchAngle = Math.max(-0.35, Math.min(0.55, pitchAngle));
+          lastTouchCamX = t.clientX;
+          lastTouchCamY = t.clientY;
+        }
+      }
+    }, { passive: false });
+
+    function resetTouch(id) {
+      if (id === leftTouchId) { leftTouchId = null; touchMoveX = 0; touchMoveY = 0; }
+      if (id === rightTouchId) { rightTouchId = null; }
+    }
+    window.addEventListener('touchend', (e) => { for (let i = 0; i < e.changedTouches.length; i++) resetTouch(e.changedTouches[i].identifier); });
+    window.addEventListener('touchcancel', (e) => { for (let i = 0; i < e.changedTouches.length; i++) resetTouch(e.changedTouches[i].identifier); });
+
+    function handleLocalInput() {
+      let moved = false;
+
+      if (keys['q']) localAngle += 0.04;
+      if (keys['e']) localAngle -= 0.04;
+      localAvatar.root.rotation.y = localAngle;
+
+      const fwd = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), localAngle);
+      const rgt = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), localAngle);
+
+      const fwdDelta = (keys['w'] ? 0.15 : 0) - (keys['s'] ? 0.15 : 0) - touchMoveY;
+      const strDelta = (keys['d'] ? 0.15 : 0) - (keys['a'] ? 0.15 : 0) + touchMoveX;
+
+      if (Math.abs(fwdDelta) > 0.01 || Math.abs(strDelta) > 0.01) {
+        localAvatar.root.position.addScaledVector(fwd, fwdDelta);
+        localAvatar.root.position.addScaledVector(rgt, strDelta);
+        moved = true;
+      }
+
+      // Perímetro del auditorio
+      localAvatar.root.position.x = Math.max(-19, Math.min(19, localAvatar.root.position.x));
+      localAvatar.root.position.z = Math.max(-28, Math.min(27, localAvatar.root.position.z));
+
+      // Animación al caminar
+      if (moved) {
+        walkCycle += 0.22;
+        localAvatar.leftLeg.rotation.x = Math.sin(walkCycle) * 0.55;
+        localAvatar.rightLeg.rotation.x = -Math.sin(walkCycle) * 0.55;
+        localAvatar.leftArm.rotation.x = -Math.sin(walkCycle) * 0.55;
+        localAvatar.rightArm.rotation.x = Math.sin(walkCycle) * 0.55;
+      } else {
+        localAvatar.leftLeg.rotation.x = 0;
+        localAvatar.rightLeg.rotation.x = 0;
+        localAvatar.leftArm.rotation.x = 0;
+        localAvatar.rightArm.rotation.x = 0;
+      }
+
+      const camDist = 4.8;
+      const camHeight = 2.4 + (pitchAngle * 2.2);
+      const camOffset = new THREE.Vector3(0, camHeight, camDist * Math.cos(pitchAngle)).applyAxisAngle(new THREE.Vector3(0, 1, 0), localAngle);
+
+      camera.position.copy(localAvatar.root.position).add(camOffset);
+      camera.lookAt(localAvatar.root.position.x, localAvatar.root.position.y + 1.35 - (pitchAngle * 1.2), localAvatar.root.position.z);
+
+      return moved;
+    }
+
+    // ==========================================
+    // 7. SEÑALIZACIÓN FIREBASE Y P2P MESH
+    // ==========================================
+    let peer = null;
+    let myId = null;
+
+    document.getElementById('btnJoin').addEventListener('click', () => {
+      const roomName = document.getElementById('roomId').value.trim();
+      const userName = document.getElementById('username').value.trim();
+      if (!roomName || !userName) return;
+
+      document.getElementById('connectionPanel').style.display = 'none';
+      document.getElementById('stats').innerText = "Conectando al recinto...";
+
+      peer = new Peer();
+
+      peer.on('open', (id) => {
+        myId = id;
+        document.getElementById('stats').innerText = `Auditorio: ${roomName} | Participante: ${userName}`;
+
+        peer.on('connection', (conn) => setupConnection(conn));
+
+        const roomPeersRef = db.ref(`rooms/${roomName}/peers`);
+        const myRef = db.ref(`rooms/${roomName}/peers/${myId}`);
+
+        roomPeersRef.on('child_added', (snap) => {
+          const remoteId = snap.key;
+          if (remoteId !== myId && !remotePeers[remoteId]) {
+            if (myId < remoteId) {
+              const conn = peer.connect(remoteId);
+              setupConnection(conn);
+            }
+          }
+        });
+
+        myRef.set({ user: userName, t: Date.now() });
+        myRef.onDisconnect().remove();
+
+        roomPeersRef.on('child_removed', (snap) => removeRemotePeer(snap.key));
+      });
+
+      peer.on('error', (err) => console.error("PeerJS error:", err));
+    });
+
+    function setupConnection(conn) {
+      conn.on('open', () => {
+        if (!remotePeers[conn.peer]) {
+          const avatar = createHumanoidAvatar(0xe65c00);
+          scene.add(avatar.root);
+
+          remotePeers[conn.peer] = {
+            conn: conn,
+            avatar: avatar,
+            targetPos: new THREE.Vector3(0, 0, 7),
+            targetRotY: 0,
+            walkCycle: 0,
+            isMoving: false
+          };
+        } else {
+          remotePeers[conn.peer].conn = conn;
+        }
+      });
+
+      conn.on('data', (data) => {
+        if (data.t === 's' && remotePeers[conn.peer]) {
+          const p = remotePeers[conn.peer];
+          p.targetPos.set(data.x, data.y, data.z);
+          p.targetRotY = data.ry;
+          p.isMoving = data.m;
+        }
+      });
+
+      conn.on('close', () => removeRemotePeer(conn.peer));
+      conn.on('error', () => removeRemotePeer(conn.peer));
+    }
+
+    function removeRemotePeer(id) {
+      if (remotePeers[id]) {
+        scene.remove(remotePeers[id].avatar.root);
+        if (remotePeers[id].conn) remotePeers[id].conn.close();
+        delete remotePeers[id];
+      }
+    }
+
+    // Transmisión 20 Hz
+    setInterval(() => {
+      if (!peer || !myId) return;
+
+      const isKeyMoving = keys['w'] || keys['s'] || keys['a'] || keys['d'];
+      const isTouchMoving = Math.abs(touchMoveX) > 0.01 || Math.abs(touchMoveY) > 0.01;
+      const moving = isKeyMoving || isTouchMoving;
+
+      const payload = {
+        t: 's',
+        x: Number(localAvatar.root.position.x.toFixed(2)),
+        y: Number(localAvatar.root.position.y.toFixed(2)),
+        z: Number(localAvatar.root.position.z.toFixed(2)),
+        ry: Number(localAvatar.root.rotation.y.toFixed(2)),
+        m: moving
+      };
+
+      for (const id in remotePeers) {
+        const p = remotePeers[id];
+        if (p.conn && p.conn.open) p.conn.send(payload);
+      }
+    }, 50);
+
+    // ==========================================
+    // 8. BUCLE DE RENDER
+    // ==========================================
+    function animate() {
+      requestAnimationFrame(animate);
+
+      handleLocalInput();
+
+      for (const id in remotePeers) {
+        const p = remotePeers[id];
+        p.avatar.root.position.lerp(p.targetPos, 0.15);
+
+        let diff = p.targetRotY - p.avatar.root.rotation.y;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        p.avatar.root.rotation.y += diff * 0.15;
+
+        if (p.isMoving) {
+          p.walkCycle += 0.22;
+          p.avatar.leftLeg.rotation.x = Math.sin(p.walkCycle) * 0.55;
+          p.avatar.rightLeg.rotation.x = -Math.sin(p.walkCycle) * 0.55;
+          p.avatar.leftArm.rotation.x = -Math.sin(p.walkCycle) * 0.55;
+          p.avatar.rightArm.rotation.x = Math.sin(p.walkCycle) * 0.55;
+        } else {
+          p.avatar.leftLeg.rotation.x = 0;
+          p.avatar.rightLeg.rotation.x = 0;
+          p.avatar.leftArm.rotation.x = 0;
+          p.avatar.rightArm.rotation.x = 0;
+        }
+      }
+
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
